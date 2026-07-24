@@ -3,16 +3,12 @@ package Colas;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
- * Animacion real de Cola Simple. A diferencia de la version anterior
- * (una pantalla para Encolar y otra para Desencolar, cada una esperando
- * que el usuario haga click para arrancar), ahora todo vive en una sola
- * pantalla: al construirse arranca solo, encola 3 valores, desencola 2,
- * y cuando termina espera un momento y vuelve a empezar - sin que el
- * usuario tenga que interactuar para nada.
+ * Animacion interactiva de Cola Simple.
+ * El usuario puede ingresar datos, ejecutar Encolar/Desencolar 
+ * y verificar el estado de la cola paso a paso.
  */
 public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
 
@@ -114,10 +110,17 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
 
     private final Color colorTema;
     private final Timer timer;
-    private Timer timerReinicio;
 
-    private final JLabel mensajeLabel = new JLabel(" ", SwingConstants.CENTER);
+    private final JLabel mensajeLabel = new JLabel("Escribe un dato y elige una operacion", SwingConstants.CENTER);
     private final Lienzo lienzo = new Lienzo();
+
+    private final JTextField campoDato = new JTextField(4);
+    private final JButton btnEncolar = new JButton("Encolar");
+    private final JButton btnDesencolar = new JButton("Desencolar");
+    
+    // --- NUEVOS BOTONES DE VERIFICACIÓN ---
+    private final JButton btnVacia = new JButton("¿Vacía?");
+    private final JButton btnLlena = new JButton("¿Llena?");
 
     public ColaSimplePanel(Color colorTema) {
         this.colorTema = colorTema;
@@ -126,17 +129,37 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
         setBackground(Color.WHITE);
         add(lienzo, BorderLayout.CENTER);
 
-        mensajeLabel.setFont(mensajeLabel.getFont().deriveFont(Font.ITALIC, 13f));
-        mensajeLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 10, 0));
-        add(mensajeLabel, BorderLayout.SOUTH);
+        mensajeLabel.setFont(mensajeLabel.getFont().deriveFont(Font.ITALIC, 14f));
+        mensajeLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 6, 0));
+
+        JPanel controles = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        controles.setBackground(Color.WHITE);
+        controles.add(new JLabel("Dato:"));
+        controles.add(campoDato);
+        controles.add(btnEncolar);
+        controles.add(btnDesencolar);
+        
+        // Agregamos un pequeño separador visual y los nuevos botones
+        controles.add(new JSeparator(SwingConstants.VERTICAL));
+        controles.add(btnVacia);
+        controles.add(btnLlena);
+
+        JPanel sur = new JPanel(new BorderLayout());
+        sur.setBackground(Color.WHITE);
+        sur.add(mensajeLabel, BorderLayout.NORTH);
+        sur.add(controles, BorderLayout.SOUTH);
+        add(sur, BorderLayout.SOUTH);
 
         timer = new Timer(1500, e -> avanzarUnPaso());
 
-        prepararSecuenciaCompleta();
+        // Eventos de los botones
+        btnEncolar.addActionListener(e -> intentarEncolar());
+        btnDesencolar.addActionListener(e -> intentarDesencolar());
+        btnVacia.addActionListener(e -> verificarVacia());
+        btnLlena.addActionListener(e -> verificarLlena());
 
-        pasoActual = 0;
         actualizarVista();
-        iniciarReproduccion();
+        actualizarBotones();
     }
 
     private static class Paso {
@@ -162,13 +185,7 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
         }
     }
 
-    private void prepararSecuenciaCompleta() {
-        pasos.addAll(generarPasosEncolar(12));
-        pasos.addAll(generarPasosEncolar(45));
-        pasos.addAll(generarPasosEncolar(89));
-        pasos.addAll(generarPasosDesencolar());
-        pasos.addAll(generarPasosDesencolar());
-    }
+    // ---------- Generación de pasos por operación ----------
 
     private List<Paso> generarPasosEncolar(int valor) {
         List<Paso> r = new ArrayList<>();
@@ -178,9 +195,9 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
 
         r.add(new Paso(copia.clone(), f, fi, 19, 9, "Iniciando Encolar(" + valor + ")", op, null));
         r.add(new Paso(copia.clone(), f, fi, 21, 10, "Llamar ColaLlena() para verificar...", op, null));
-        r.add(new Paso(copia.clone(), f, fi, 12, 6, "\u00bfEsta llena? (fin == " + (CAPACIDAD - 1) + " -> " + (fi == CAPACIDAD - 1) + ")", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 12, 6, "¿Esta llena? (fin == " + (CAPACIDAD - 1) + " -> " + (fi == CAPACIDAD - 1) + ")", op, null));
 
-        if (fi == CAPACIDAD - 1) {
+        if (fi == CAPACIDAD - 1) { 
             r.add(new Paso(copia.clone(), f, fi, 23, 10, "Desbordamiento: no se puede encolar " + valor, op, null));
             return r;
         }
@@ -195,7 +212,7 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
 
         r.add(new Paso(copia.clone(), f, fi, 28, 14, "Verificando si frente == -1...", op, fi));
 
-        if (f == -1) {
+        if (f == -1) { 
             f = 0;
             r.add(new Paso(copia.clone(), f, fi, 29, 14, "Hacer frente <- 0 (primer elemento)", op, fi));
         }
@@ -216,7 +233,7 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
         String op = "DESENCOLAR()";
 
         r.add(new Paso(copia.clone(), f, fi, 35, 19, "Iniciando Desencolar()", op, null));
-        r.add(new Paso(copia.clone(), f, fi, 37, 20, "\u00bfEsta vacia? (frente != -1 -> " + (f != -1) + ")", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 37, 20, "¿Esta vacia? (frente != -1 -> " + (f != -1) + ")", op, null));
 
         if (f == -1 || f > fi) {
             r.add(new Paso(copia.clone(), f, fi, 46, 30, "Subdesbordamiento: la cola esta vacia", op, null));
@@ -226,7 +243,7 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
         r.add(new Paso(copia.clone(), f, fi, 38, 21, "Hacer Dato <- COLA[" + f + "] (" + copia[f] + ")", op, f));
         copia[f] = null;
 
-        r.add(new Paso(copia.clone(), f, fi, 39, 23, "\u00bffrente == fin? (" + f + " == " + fi + " -> " + (f == fi) + ")", op, f));
+        r.add(new Paso(copia.clone(), f, fi, 39, 23, "¿frente == fin? (" + f + " == " + fi + " -> " + (f == fi) + ")", op, f));
 
         if (f == fi) {
             f = -1;
@@ -246,45 +263,109 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
         return r;
     }
 
+    // --- NUEVOS MÉTODOS DE VERIFICACIÓN ---
+
+    private void verificarVacia() {
+        if (timer.isRunning()) return;
+        List<Paso> r = new ArrayList<>();
+        Integer[] copia = arreglo.clone();
+        String op = "VERIFICAR VACIA()";
+        boolean vacia = (frente == -1);
+
+        r.add(new Paso(copia.clone(), frente, fin, 1, 1, "Llamando al algoritmo ColaVacia()", op, null));
+        r.add(new Paso(copia.clone(), frente, fin, 3, 2, "¿frente == -1? (" + frente + " == -1) -> " + vacia, op, null));
+        
+        String msjFinal = vacia ? "RESULTADO: La cola SÍ está vacía." : "RESULTADO: La cola NO está vacía.";
+        r.add(new Paso(copia.clone(), frente, fin, vacia ? 4 : 6, 2, msjFinal, op, null));
+
+        ejecutarOperacion(r);
+    }
+
+    private void verificarLlena() {
+        if (timer.isRunning()) return;
+        List<Paso> r = new ArrayList<>();
+        Integer[] copia = arreglo.clone();
+        String op = "VERIFICAR LLENA()";
+        boolean llena = (fin == CAPACIDAD - 1);
+
+        r.add(new Paso(copia.clone(), frente, fin, 10, 5, "Llamando al algoritmo ColaLlena()", op, null));
+        r.add(new Paso(copia.clone(), frente, fin, 12, 6, "¿fin == MAX - 1? (" + fin + " == " + (CAPACIDAD - 1) + ") -> " + llena, op, null));
+        
+        String msjFinal = llena ? "RESULTADO: La cola SÍ está llena." : "RESULTADO: La cola NO está llena.";
+        r.add(new Paso(copia.clone(), frente, fin, llena ? 13 : 15, 6, msjFinal, op, null));
+
+        ejecutarOperacion(r);
+    }
+
+    // ---------- Disparo de operaciones desde la UI ----------
+
+    private void intentarEncolar() {
+        if (timer.isRunning()) return;
+        String texto = campoDato.getText().trim();
+        int valor;
+        try {
+            valor = Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            mensajeLabel.setText("Ingresa un numero entero valido para encolar");
+            return;
+        }
+        campoDato.setText("");
+        ejecutarOperacion(generarPasosEncolar(valor));
+    }
+
+    private void intentarDesencolar() {
+        if (timer.isRunning()) return;
+        ejecutarOperacion(generarPasosDesencolar());
+    }
+
+    private void ejecutarOperacion(List<Paso> nuevaSecuencia) {
+        pasos.clear();
+        pasos.addAll(nuevaSecuencia);
+        pasoActual = 0;
+        actualizarVista();
+        iniciarReproduccion();
+        actualizarBotones();
+    }
+
     private void avanzarUnPaso() {
-        if (pasos.isEmpty()) return;
         if (pasoActual < pasos.size() - 1) {
             pasoActual++;
             actualizarVista();
         } else {
             detenerReproduccion();
-            reiniciarLuegoDePausa();
+            actualizarBotones();
         }
     }
 
-    private void reiniciarLuegoDePausa() {
-        if (timerReinicio != null) timerReinicio.stop();
-        timerReinicio = new Timer(2500, e -> {
-            frente = -1;
-            fin = -1;
-            Arrays.fill(arreglo, null);
-            pasos.clear();
-            prepararSecuenciaCompleta();
-            pasoActual = 0;
-            actualizarVista();
-            iniciarReproduccion();
-        });
-        timerReinicio.setRepeats(false);
-        timerReinicio.start();
-    }
-
     private void iniciarReproduccion() {
-        if (pasos.isEmpty() || pasos.size() <= 1) return;
-        timer.start();
+        if (pasos.size() > 1) {
+            timer.start();
+        }
     }
 
     private void detenerReproduccion() {
         timer.stop();
     }
 
+    private void actualizarBotones() {
+        boolean animando = timer.isRunning();
+        btnEncolar.setEnabled(!animando);
+        btnDesencolar.setEnabled(!animando);
+        btnVacia.setEnabled(!animando);
+        btnLlena.setEnabled(!animando);
+        campoDato.setEnabled(!animando);
+    }
+
     private void actualizarVista() {
         Paso p = pasoActualObj();
-        if (p != null) mensajeLabel.setText("[" + p.operacion + "]  " + p.mensaje);
+        if (p != null) {
+            // Si es el último paso y es de verificación, destacamos el texto
+            if (pasoActual == pasos.size() - 1 && p.operacion.startsWith("VERIFICAR")) {
+                mensajeLabel.setText("<html><b>[" + p.operacion + "] &nbsp;&nbsp; <font color='blue'>" + p.mensaje + "</font></b></html>");
+            } else {
+                mensajeLabel.setText("[" + p.operacion + "]  " + p.mensaje);
+            }
+        }
         lienzo.repaint();
     }
 
@@ -295,7 +376,6 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
 
     @Override
     public void saltarALinea(int numeroLinea, boolean esPseudocodigo) {
-        if (timerReinicio != null) timerReinicio.stop();
         detenerReproduccion();
         for (int i = 0; i < pasos.size(); i++) {
             Paso p = pasos.get(i);
@@ -304,6 +384,7 @@ public class ColaSimplePanel extends JPanel implements AnimacionInteractiva {
                 pasoActual = i;
                 actualizarVista();
                 iniciarReproduccion();
+                actualizarBotones();
                 return;
             }
         }
