@@ -1,4 +1,5 @@
 package Colas;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -22,35 +23,17 @@ public class MainFrame extends JFrame {
 
         // Tema: Colas. Subtemas: un tipo de cola por pantalla.
         String[] nombresSubtemas = {
-            "Cola Simple", "Cola Circular", "Cola DOBLE - Entrada Restringida", "Cola Doble (Deque)"
+            "Cola Simple", "Cola Circular", "Cola DOBLE - Entrada Restringida", "Cola DOBLE - Salida Restringida"
         };
         String[] keysSubtemas = {
-            "cola-simple", "cola-circular", "cola-doble-entrada-restringida", "cola-doble"
+            "cola-simple", "cola-circular", "cola-doble-entrada-restringida", "cola-doble-salida-restringida"
         };
         Color[] coloresPorSubtema = {
             new Color(74, 144, 217), new Color(232, 163, 61),
             new Color(120, 180, 90), new Color(190, 90, 160)
         };
 
-        String[] pseudoDemo = {
-            "Funcion enqueue(cola, valor):",
-            "  Si cola.esta_llena():",
-            "    retornar error",
-            "  cola[final] = valor",
-            "  final = (final + 1) % tamanio",
-            "  retornar exito"
-        };
-        String[] codigoDemo = {
-            "public void enqueue(int valor) {",
-            "  if (estaLlena()) throw new RuntimeException();",
-            "  arreglo[fin] = valor;",
-            "  fin = (fin + 1) % capacidad;",
-            "}"
-        };
-
         // --- Cola Simple ---
-        // Animacion real: encolar y desencolar corren solos, en secuencia,
-        // apenas se entra a la pantalla (ver ColaSimplePanel).
         Leccion leccionColaSimple = new Leccion(
             "Cola Simple",
             new ColaSimplePanel(coloresPorSubtema[0]),
@@ -59,33 +42,32 @@ public class MainFrame extends JFrame {
         );
         panelCards.add(new LeccionPanel(leccionColaSimple), keysSubtemas[0]);
 
-        // COLA CIRCULAR
+        // --- Cola Circular ---
         Leccion leccionColaCircular = new Leccion(
-        "Cola Circular",
-        new ColaCircularPanel(coloresPorSubtema[1]),
-        ColaCircularPanel.PSEUDOCODIGO,
-        ColaCircularPanel.CODIGO
+            "Cola Circular",
+            new ColaCircularPanel(coloresPorSubtema[1]),
+            ColaCircularPanel.PSEUDOCODIGO,
+            ColaCircularPanel.CODIGO
         );
-        
-     // COLA DOBLE - ENTRADA RESTRINGIDA
+        panelCards.add(new LeccionPanel(leccionColaCircular), keysSubtemas[1]);
+         
+        // --- Cola Doble - Entrada Restringida ---
         Leccion leccionColaDobleEntradaRestringida = new Leccion(
-        "Cola Doble - Entrada Restringida",
-        new ColaDobleEntradaRestringidaPanel(coloresPorSubtema[2]),
-        ColaDobleEntradaRestringidaPanel.PSEUDOCODIGO,
-        ColaDobleEntradaRestringidaPanel.CODIGO
+            "Cola Doble - Entrada Restringida",
+            new ColaDobleEntradaRestringidaPanel(coloresPorSubtema[2]),
+            ColaDobleEntradaRestringidaPanel.PSEUDOCODIGO,
+            ColaDobleEntradaRestringidaPanel.CODIGO
         );
-        
-        panelCards.add(new LeccionPanel(leccionColaCircular), "cola-circular");
-        panelCards.add(new LeccionPanel(leccionColaDobleEntradaRestringida), "cola-doble-entrada-restringida");
-        for (int i = 3; i < keysSubtemas.length; i++) {
-            Leccion leccion = new Leccion(
-                nombresSubtemas[i],
-                new AnimacionPlaceholder(nombresSubtemas[i], coloresPorSubtema[i]),
-                pseudoDemo,
-                codigoDemo
-            );
-            panelCards.add(new LeccionPanel(leccion), keysSubtemas[i]);
-        }
+        panelCards.add(new LeccionPanel(leccionColaDobleEntradaRestringida), keysSubtemas[2]);
+
+        // --- Cola Doble - Salida Restringida ---
+        Leccion leccionColaDobleSalidaRestringida = new Leccion(
+            "Cola Doble - Salida Restringida",
+            new ColaDobleSalidaRestringidaPanel(coloresPorSubtema[3]),
+            ColaDobleSalidaRestringidaPanel.PSEUDOCODIGO,
+            ColaDobleSalidaRestringidaPanel.CODIGO
+        );
+        panelCards.add(new LeccionPanel(leccionColaDobleSalidaRestringida), keysSubtemas[3]);
 
         panelCards.add(new CreditosPanel(), "creditos");
 

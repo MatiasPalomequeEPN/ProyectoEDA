@@ -8,6 +8,7 @@ Colas\Leccion.class
 Colas\ScrollBarUIPlano.class
 Colas\AnimacionInteractiva.class
 Colas\ColaDobleEntradaRestringidaPanel$Lienzo.class
+Colas\ColaDobleSalidaRestringidaPanel$Paso.class
 Colas\ColaCircularPanel$Paso.class
 Colas\LeccionPanel.class
 Colas\ColaSimplePanel.class
@@ -15,6 +16,8 @@ Colas\ColaDobleEntradaRestringidaPanel.class
 Colas\TabbedPaneUIPlano.class
 Colas\ColaDobleEntradaRestringidaPanel$Paso.class
 Colas\Sidebar$1.class
+Colas\ColaDobleSalidaRestringidaPanel.class
 Colas\ColaSimplePanel$Lienzo.class
 Colas\ColaSimplePanel$Paso.class
+Colas\ColaDobleSalidaRestringidaPanel$Lienzo.class
 Colas\Sidebar.class
