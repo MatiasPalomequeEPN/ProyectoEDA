@@ -3,18 +3,17 @@ package Colas;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
- * Animación de Cola Circular con representación lineal de arreglo,
- * adaptada a la lógica de la Dra. Mayra Carrión (Encolar y Desencolar con 'dato').
+ * Animación interactiva de Cola Circular adaptada a la lógica de la Dra. Mayra Carrión.
+ * Muestra el paso a paso de las operaciones y es compatible con AnimacionInteractiva.
  */
 public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
 
     private static final int CAPACIDAD = 6;
 
-    /** Pseudocódigo genérico basado en la lógica de la Dra. Mayra Carrión */
+    /** Pseudocódigo combinado (Encolar + Desencolar), numeración global 1..N. */
     public static final String[] PSEUDOCODIGO = {
         "ALGORITMO Encolar(COLA, frente, FIN, MAX, dato)",
         "  Si ((frente == 0 Y FIN + 1 == MAX) O (FIN + 1 == frente))",
@@ -54,10 +53,20 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         "      Fin Si",
         "    Fin Si",
         "  Fin Si",
-        "Fin ALGORITMO Desencolar()"
+        "Fin ALGORITMO Desencolar()",
+        " ",
+        "ALGORITMO ColaVacia(COLA, frente, B)",
+        "  Si (frente == -1) entonces Hacer B <- Verdadero",
+        "  sino Hacer B <- Falso",
+        "Fin ALGORITMO",
+        " ",
+        "ALGORITMO ColaLlena(COLA, frente, FIN, MAX, B)",
+        "  Si ((frente == 0 Y FIN + 1 == MAX) O (FIN + 1 == frente)) entonces Hacer B <- Verdadero",
+        "  sino Hacer B <- Falso",
+        "Fin ALGORITMO"
     };
 
-    /** Código Java adaptado a nombres universales */
+    /** Código Java combinado, numeración global 1..N. */
     public static final String[] CODIGO = {
         "public void encolar(int dato) {",
         "  if ((frente == 0 && FIN + 1 == capacidad) || (FIN + 1 == frente)) {",
@@ -95,6 +104,14 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         "      }",
         "    }",
         "  }",
+        "}",
+        " ",
+        "public boolean estaVacia() {",
+        "  return frente == -1;",
+        "}",
+        " ",
+        "public boolean estaLlena() {",
+        "  return (frente == 0 && FIN + 1 == capacidad) || (FIN + 1 == frente);",
         "}"
     };
 
@@ -107,10 +124,15 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
 
     private final Color colorTema;
     private final Timer timer;
-    private Timer timerReinicio;
 
-    private final JLabel mensajeLabel = new JLabel(" ", SwingConstants.CENTER);
+    private final JLabel mensajeLabel = new JLabel("Escribe un dato y elige una operación", SwingConstants.CENTER);
     private final Lienzo lienzo = new Lienzo();
+
+    private final JTextField campoDato = new JTextField(4);
+    private final JButton btnEncolar = new JButton("Encolar");
+    private final JButton btnDesencolar = new JButton("Desencolar");
+    private final JButton btnVacia = new JButton("¿Vacía?");
+    private final JButton btnLlena = new JButton("¿Llena?");
 
     public ColaCircularPanel(Color colorTema) {
         this.colorTema = colorTema;
@@ -119,17 +141,37 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         setBackground(Color.WHITE);
         add(lienzo, BorderLayout.CENTER);
 
-        mensajeLabel.setFont(mensajeLabel.getFont().deriveFont(Font.ITALIC, 13f));
-        mensajeLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 10, 0));
-        add(mensajeLabel, BorderLayout.SOUTH);
+        mensajeLabel.setFont(mensajeLabel.getFont().deriveFont(Font.ITALIC, 14f));
+        mensajeLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 6, 0));
+
+        JPanel controles = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        controles.setBackground(Color.WHITE);
+        controles.add(new JLabel("Dato:"));
+        controles.add(campoDato);
+        controles.add(btnEncolar);
+        controles.add(btnDesencolar);
+        
+        controles.add(new JSeparator(SwingConstants.VERTICAL));
+        controles.add(btnVacia);
+        controles.add(btnLlena);
+
+        JPanel sur = new JPanel(new BorderLayout());
+        sur.setBackground(Color.WHITE);
+        sur.add(mensajeLabel, BorderLayout.NORTH);
+        sur.add(controles, BorderLayout.SOUTH);
+        add(sur, BorderLayout.SOUTH);
 
         timer = new Timer(1500, e -> avanzarUnPaso());
 
-        prepararSecuenciaCompleta();
+        // Eventos
+        btnEncolar.addActionListener(e -> intentarEncolar());
+        btnDesencolar.addActionListener(e -> intentarDesencolar());
+        campoDato.addActionListener(e -> intentarEncolar());
+        btnVacia.addActionListener(e -> verificarVacia());
+        btnLlena.addActionListener(e -> verificarLlena());
 
-        pasoActual = 0;
         actualizarVista();
-        iniciarReproduccion();
+        actualizarBotones();
     }
 
     private static class Paso {
@@ -155,70 +197,51 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         }
     }
 
-    /**
-     * Secuencia de demostración:
-     * 1. Encola 4 elementos.
-     * 2. Desencola 2 elementos (liberando índices 0 y 1).
-     * 3. Encola hasta llenar la cola (FIN da la vuelta circular a 0 y luego a 1).
-     * 4. Intenta encolar un elemento EXTRA para demostrar el DESBORDAMIENTO.
-     */
-    private void prepararSecuenciaCompleta() {
-        pasos.addAll(generarPasosEncolar(10));
-        pasos.addAll(generarPasosEncolar(20));
-        pasos.addAll(generarPasosEncolar(30));
-        pasos.addAll(generarPasosEncolar(40));
-        
-        pasos.addAll(generarPasosDesencolar()); // libera [0]
-        pasos.addAll(generarPasosDesencolar()); // libera [1]
-        
-        pasos.addAll(generarPasosEncolar(50)); 
-        pasos.addAll(generarPasosEncolar(60)); // FIN llega al final (MAX - 1)
-        pasos.addAll(generarPasosEncolar(70)); // FIN da la vuelta circular a [0]
-        pasos.addAll(generarPasosEncolar(80)); // FIN se mueve a [1] -> COLA COMPLETA!
-        
-        // Intento de encolar con cola llena -> Provoca Desbordamiento
-        pasos.addAll(generarPasosEncolar(99)); 
-    }
+    // ---------- Generación de pasos por operación ----------
 
-    private List<Paso> generarPasosEncolar(int dato) {
+    private List<Paso> generarPasosEncolar(int valor) {
         List<Paso> r = new ArrayList<>();
         Integer[] copia = arreglo.clone();
         int f = frente, fi = fin;
-        String op = "ENCOLAR(" + dato + ")";
+        String op = "ENCOLAR(" + valor + ")";
 
-        r.add(new Paso(copia.clone(), f, fi, 1, 1, "Iniciando Encolar(" + dato + ")", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 1, 1, "Iniciando Encolar(" + valor + ")", op, null));
+        boolean estaLlena = (f == 0 && fi + 1 == CAPACIDAD) || (fi + 1 == f);
+        r.add(new Paso(copia.clone(), f, fi, 2, 2, "¿Cola llena? -> " + estaLlena, op, null));
 
-        boolean condicionLlena = (f == 0 && fi + 1 == CAPACIDAD) || (fi + 1 == f);
-        r.add(new Paso(copia.clone(), f, fi, 2, 2, "Verificando si esta llena... (" + condicionLlena + ")", op, null));
-
-        if (condicionLlena) {
-            r.add(new Paso(copia.clone(), f, fi, 3, 3, "¡DESBORDAMIENTO! La cola circular esta llena", op, null));
+        if (estaLlena) {
+            r.add(new Paso(copia.clone(), f, fi, 3, 3, "Desbordamiento: la cola circular está llena", op, null));
             return r;
         }
 
+        r.add(new Paso(copia.clone(), f, fi, 5, 5, "¿Está vacía? (frente == -1 -> " + (f == -1) + ")", op, null));
+
         if (f == -1) {
-            fi = 0;
             f = 0;
-            r.add(new Paso(copia.clone(), f, fi, 6, 6, "Cola vacia inicial: frente <- 0, FIN <- 0", op, null));
-            copia[fi] = dato;
-            r.add(new Paso(copia.clone(), f, fi, 8, 7, "Hacer COLA[0] <- " + dato, op, fi));
+            fi = 0;
+            copia[fi] = valor;
+            r.add(new Paso(copia.clone(), f, fi, 6, 6, "Hacer frente <- 0, FIN <- 0", op, fi));
+            r.add(new Paso(copia.clone(), f, fi, 8, 7, "Hacer COLA[" + fi + "] <- " + valor, op, fi));
         } else {
+            r.add(new Paso(copia.clone(), f, fi, 10, 9, "¿FIN + 1 == MAX? (" + (fi + 1) + " == " + CAPACIDAD + ")", op, null));
             if (fi + 1 == CAPACIDAD) {
                 fi = 0;
-                r.add(new Paso(copia.clone(), f, fi, 11, 10, "FIN + 1 == MAX -> VUELTA CIRCULAR: FIN <- 0", op, null));
+                copia[fi] = valor;
+                r.add(new Paso(copia.clone(), f, fi, 11, 10, "Vuelta circular: Hacer FIN <- 0", op, fi));
+                r.add(new Paso(copia.clone(), f, fi, 12, 11, "Hacer COLA[0] <- " + valor, op, fi));
             } else {
                 fi = fi + 1;
-                r.add(new Paso(copia.clone(), f, fi, 14, 13, "Hacer FIN <- FIN + 1 -> FIN = " + fi, op, null));
+                copia[fi] = valor;
+                r.add(new Paso(copia.clone(), f, fi, 14, 13, "Hacer FIN <- FIN + 1 -> FIN = " + fi, op, fi));
+                r.add(new Paso(copia.clone(), f, fi, 15, 14, "Hacer COLA[" + fi + "] <- " + valor, op, fi));
             }
-            copia[fi] = dato;
-            r.add(new Paso(copia.clone(), f, fi, 15, 14, "Hacer COLA[" + fi + "] <- " + dato, op, fi));
         }
 
-        r.add(new Paso(copia.clone(), f, fi, 19, 18, "Fin ALGORITMO Encolar()", op, fi));
+        r.add(new Paso(copia.clone(), f, fi, 19, 17, "Fin Algoritmo Encolar()", op, fi));
 
         frente = f;
         fin = fi;
-        arreglo[fi] = dato;
+        System.arraycopy(copia, 0, arreglo, 0, CAPACIDAD);
 
         return r;
     }
@@ -229,34 +252,38 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         int f = frente, fi = fin;
         String op = "DESENCOLAR()";
 
-        r.add(new Paso(copia.clone(), f, fi, 21, 21, "Iniciando Desencolar()", op, null));
-        r.add(new Paso(copia.clone(), f, fi, 22, 22, "¿Esta vacia? (frente == -1 -> " + (f == -1) + ")", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 21, 19, "Iniciando Desencolar()", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 22, 20, "¿Está vacía? (frente == -1 -> " + (f == -1) + ")", op, null));
 
         if (f == -1) {
-            r.add(new Paso(copia.clone(), f, fi, 23, 23, "¡SUBDESBORDAMIENTO! La cola esta vacia", op, null));
+            r.add(new Paso(copia.clone(), f, fi, 23, 21, "Subdesbordamiento: la cola está vacía", op, null));
             return r;
         }
 
-        r.add(new Paso(copia.clone(), f, fi, 24, 24, "¿frente == FIN? (" + f + " == " + fi + ")", op, f));
+        r.add(new Paso(copia.clone(), f, fi, 25, 23, "¿frente == FIN? (" + f + " == " + fi + " -> " + (f == fi) + ")", op, null));
 
         if (f == fi) {
+            r.add(new Paso(copia.clone(), f, fi, 26, 24, "Limpiando COLA[" + f + "] <- Nulo", op, f));
             copia[f] = null;
             f = -1;
             fi = -1;
-            r.add(new Paso(copia.clone(), f, fi, 26, 26, "Ultimo elemento eliminado: frente <- -1, FIN <- -1", op, null));
+            r.add(new Paso(copia.clone(), f, fi, 27, 25, "Hacer frente <- -1, FIN <- -1 (cola vacía)", op, null));
         } else {
+            r.add(new Paso(copia.clone(), f, fi, 30, 27, "¿frente + 1 == MAX? (" + (f + 1) + " == " + CAPACIDAD + ")", op, null));
             if (f + 1 == CAPACIDAD) {
+                r.add(new Paso(copia.clone(), f, fi, 31, 28, "Limpiando COLA[" + f + "] <- Nulo", op, f));
                 copia[f] = null;
                 f = 0;
-                r.add(new Paso(copia.clone(), f, fi, 31, 29, "frente + 1 == MAX -> VUELTA CIRCULAR: frente <- 0", op, null));
+                r.add(new Paso(copia.clone(), f, fi, 32, 29, "Vuelta circular: Hacer frente <- 0", op, null));
             } else {
+                r.add(new Paso(copia.clone(), f, fi, 34, 31, "Limpiando COLA[" + f + "] <- Nulo", op, f));
                 copia[f] = null;
                 f = f + 1;
-                r.add(new Paso(copia.clone(), f, fi, 34, 31, "Hacer frente <- frente + 1 -> frente = " + f, op, null));
+                r.add(new Paso(copia.clone(), f, fi, 35, 32, "Hacer frente <- frente + 1 -> frente = " + f, op, null));
             }
         }
 
-        r.add(new Paso(copia.clone(), f, fi, 38, 35, "Fin ALGORITMO Desencolar()", op, null));
+        r.add(new Paso(copia.clone(), f, fi, 39, 36, "Fin Algoritmo Desencolar()", op, null));
 
         frente = f;
         fin = fi;
@@ -265,45 +292,106 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
         return r;
     }
 
+    private void verificarVacia() {
+        if (timer.isRunning()) return;
+        List<Paso> r = new ArrayList<>();
+        Integer[] copia = arreglo.clone();
+        String op = "VERIFICAR VACIA()";
+        boolean vacia = (frente == -1);
+
+        r.add(new Paso(copia.clone(), frente, fin, 41, 38, "Llamando al algoritmo ColaVacia()", op, null));
+        r.add(new Paso(copia.clone(), frente, fin, 42, 39, "¿frente == -1? (" + frente + " == -1) -> " + vacia, op, null));
+
+        String msjFinal = vacia ? "RESULTADO: La cola SÍ está vacía." : "RESULTADO: La cola NO está vacía.";
+        r.add(new Paso(copia.clone(), frente, fin, 42, 39, msjFinal, op, null));
+
+        ejecutarOperacion(r);
+    }
+
+    private void verificarLlena() {
+        if (timer.isRunning()) return;
+        List<Paso> r = new ArrayList<>();
+        Integer[] copia = arreglo.clone();
+        String op = "VERIFICAR LLENA()";
+        boolean llena = (frente == 0 && fin + 1 == CAPACIDAD) || (fin + 1 == frente);
+
+        r.add(new Paso(copia.clone(), frente, fin, 46, 42, "Llamando al algoritmo ColaLlena()", op, null));
+        r.add(new Paso(copia.clone(), frente, fin, 47, 43, "Verificando condición de lleno -> " + llena, op, null));
+
+        String msjFinal = llena ? "RESULTADO: La cola SÍ está llena." : "RESULTADO: La cola NO está llena.";
+        r.add(new Paso(copia.clone(), frente, fin, 47, 43, msjFinal, op, null));
+
+        ejecutarOperacion(r);
+    }
+
+    // ---------- Disparo de operaciones desde la UI ----------
+
+    private void intentarEncolar() {
+        if (timer.isRunning()) return;
+        String texto = campoDato.getText().trim();
+        int valor;
+        try {
+            valor = Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            mensajeLabel.setText("Ingresa un número entero válido para encolar");
+            return;
+        }
+        campoDato.setText("");
+        ejecutarOperacion(generarPasosEncolar(valor));
+    }
+
+    private void intentarDesencolar() {
+        if (timer.isRunning()) return;
+        ejecutarOperacion(generarPasosDesencolar());
+    }
+
+    private void ejecutarOperacion(List<Paso> nuevaSecuencia) {
+        pasos.clear();
+        pasos.addAll(nuevaSecuencia);
+        pasoActual = 0;
+        actualizarVista();
+        iniciarReproduccion();
+        actualizarBotones();
+    }
+
     private void avanzarUnPaso() {
-        if (pasos.isEmpty()) return;
         if (pasoActual < pasos.size() - 1) {
             pasoActual++;
             actualizarVista();
         } else {
             detenerReproduccion();
-            reiniciarLuegoDePausa();
+            actualizarBotones();
         }
     }
 
-    private void reiniciarLuegoDePausa() {
-        if (timerReinicio != null) timerReinicio.stop();
-        timerReinicio = new Timer(3000, e -> {
-            frente = -1;
-            fin = -1;
-            Arrays.fill(arreglo, null);
-            pasos.clear();
-            prepararSecuenciaCompleta();
-            pasoActual = 0;
-            actualizarVista();
-            iniciarReproduccion();
-        });
-        timerReinicio.setRepeats(false);
-        timerReinicio.start();
-    }
-
     private void iniciarReproduccion() {
-        if (pasos.isEmpty() || pasos.size() <= 1) return;
-        timer.start();
+        if (pasos.size() > 1) {
+            timer.start();
+        }
     }
 
     private void detenerReproduccion() {
         timer.stop();
     }
 
+    private void actualizarBotones() {
+        boolean animando = timer.isRunning();
+        btnEncolar.setEnabled(!animando);
+        btnDesencolar.setEnabled(!animando);
+        btnVacia.setEnabled(!animando);
+        btnLlena.setEnabled(!animando);
+        campoDato.setEnabled(!animando);
+    }
+
     private void actualizarVista() {
         Paso p = pasoActualObj();
-        if (p != null) mensajeLabel.setText("[" + p.operacion + "]  " + p.mensaje);
+        if (p != null) {
+            if (pasoActual == pasos.size() - 1 && p.operacion.startsWith("VERIFICAR")) {
+                mensajeLabel.setText("<html><b>[" + p.operacion + "] &nbsp;&nbsp; <font color='blue'>" + p.mensaje + "</font></b></html>");
+            } else {
+                mensajeLabel.setText("[" + p.operacion + "]  " + p.mensaje);
+            }
+        }
         lienzo.repaint();
     }
 
@@ -314,7 +402,6 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
 
     @Override
     public void saltarALinea(int numeroLinea, boolean esPseudocodigo) {
-        if (timerReinicio != null) timerReinicio.stop();
         detenerReproduccion();
         for (int i = 0; i < pasos.size(); i++) {
             Paso p = pasos.get(i);
@@ -323,6 +410,7 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
                 pasoActual = i;
                 actualizarVista();
                 iniciarReproduccion();
+                actualizarBotones();
                 return;
             }
         }
@@ -365,7 +453,7 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
 
             g2.setColor(Color.GRAY);
             g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 12f));
-            g2.drawString("Cola Circular (representacion lineal de arreglo, capacidad " + CAPACIDAD + ")", 15, 22);
+            g2.drawString("Cola Circular (arreglo lineal, capacidad " + CAPACIDAD + ")", 15, 22);
 
             Color relleno = clarear(colorTema, 0.72f);
 
@@ -382,7 +470,7 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
                 g2.drawRoundRect(x, y, cajaAncho, cajaAlto, 10, 10);
 
                 if (datos[i] != null) {
-                    g2.setFont(g2.getFont().deriveFont(Font.BOLD, 15f));
+                    g2.setFont(g2.getFont().deriveFont(Font.BOLD, 16f));
                     FontMetrics fm = g2.getFontMetrics();
                     String texto = String.valueOf(datos[i]);
                     g2.setColor(Color.BLACK);
@@ -399,14 +487,14 @@ public class ColaCircularPanel extends JPanel implements AnimacionInteractiva {
 
             g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 12f));
             g2.setColor(Color.DARK_GRAY);
-            String estado = "frente = " + f + "   |   FIN = " + fi;
+            String estado = "frente = " + f + "    |    FIN = " + fi;
             g2.drawString(estado, startX, y + cajaAlto + 55);
 
             if (!pasos.isEmpty()) {
                 g2.setColor(colorTema.darker());
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
                 String etiquetaOp = p != null ? p.operacion : "";
-                g2.drawString(etiquetaOp + "   -   Paso " + (pasoActual + 1) + " / " + pasos.size(), startX, y + cajaAlto + 80);
+                g2.drawString(etiquetaOp + "    -    Paso " + (pasoActual + 1) + " / " + pasos.size(), startX, y + cajaAlto + 80);
             }
         }
 
